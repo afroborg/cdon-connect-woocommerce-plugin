@@ -14,18 +14,26 @@ class CDON_Product_Settings
   }
   public function add_cdon_product_settings()
   {
-    $last_updated = get_post_meta(get_the_ID(), 'cdon_last_exported');
 ?>
     <div id='cdon_options' class='panel woocommerce_options_panel'>
       <div class="options-group">
         <p style="margin-bottom: 0; font-size: 14px;"><strong>CDON Product Specific settings</strong></p>
-        <p>Last exported on: <b><?php echo date(DATE_ISO8601, $last_updated[0]) ?: 'Never' ?></b></p>
         <?php
         woocommerce_wp_checkbox(array(
           'id'     => 'cdon_export',
           'label'   => __('Export?', 'cdon'),
           'description' => 'Determines wether or not to export this product to CDON'
         ));
+        ?>
+        <p style="margin-bottom: 0; font-size: 14px;"><strong>Last exports</strong></p>
+        <?php
+        foreach (FEEDS as $f) {
+          $feed = strtolower($f);
+          $exported_date = (get_post_meta(get_the_ID(), 'cdon_last_exported_' . $feed) ?: [false])[0];
+        ?>
+          <p style="margin: 0;"><?= ucfirst($feed) ?>: <b> <?= isset($exported_date) ? date(DATE_ISO8601, $exported_date) : 'Never' ?></b></p>
+        <?php
+        }
         ?>
       </div>
     </div>
