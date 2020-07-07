@@ -11,19 +11,27 @@ class CDON_Feed
   private const SCHEMA_VERSION = '4.8.0';
   private const SCHEMA_URL = 'https://schemas.cdon.com/product/4.0/' . self::SCHEMA_VERSION . '/';
 
-  public function __construct(string $feed_name, $get_all = false, $remove = false)
+  public function __construct(string $feed_name, $get_all, $remove)
   {
     $query = new WC_Product_Query();
 
+
     $query->set('downloadable', false);
     $query->set('virtual', false);
-    // $query->set('type', 'simple');
 
-    if (!$get_all) {
-      $query->set('cdon_export_' . $feed_name, 'yes');
-    }
+    $query->set('type', 'simple');
+
+    $query->set('cdon_export', 'yes');
 
     $this->_products = $query->get_products();
+
+    if (!$get_all) {
+      $this->_products = array_filter($this->_products, function ($product) {
+        $last_exported = get_post_meta($product->id, 'cdon_last_exported')[0];
+        $is_older = $last_exported <= $product->get_date_modified()->date('U');
+        return $is_older;
+      });
+    }
 
     $this->_feed_name = $feed_name;
 
@@ -31,7 +39,7 @@ class CDON_Feed
       return get_option('cdon_' . $market . '_enabled') == 'yes';
     });
 
-    $this->_remove = $remove;
+    $this->_remove = $remove ?: true;
 
     $this->_logger = new WC_Logger();
   }
@@ -326,7 +334,7 @@ class CDON_Feed
   private function _remove_from_next_export(): void
   {
     foreach ($this->_products as $product) {
-      update_post_meta($product->id, 'cdon_export_' . $this->_feed_name, 'no');
-    }
+      update_post_meta($product->id, 'cdon_last_exported', time());
+    } 
   }
 }

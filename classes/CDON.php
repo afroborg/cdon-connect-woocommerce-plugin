@@ -38,17 +38,15 @@ class CDON
     // Save custom CDON fields
     add_action('woocommerce_process_product_meta', [$this->_product_settings, 'cdon_save_product_settings']);
 
-    // Export availability feed when stock changes
-    add_action('woocommerce_product_set_stock', $this->_product_settings, 'cdon_export_availbility');
   }
 
   public function cdon_rest_routes()
   {
     register_rest_route('wc/cdon', 'feeds/(?P<feed>(product|price|availability|media))', [
       'methods' => 'GET',
-      'permission_callback' => function () {
-        return current_user_can("read");
-      },
+      // 'permission_callback' => function () {
+      //   return current_user_can('read');
+      // },
       'callback' => function ($data) {
         $feed_type = $data['feed'];
         $feed_generator = new CDON_Feed($feed_type, $data->get_param('all'), $data->get_param('remove'));
