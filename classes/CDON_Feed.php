@@ -11,27 +11,33 @@ class CDON_Feed
   private const SCHEMA_VERSION = '4.8.0';
   private const SCHEMA_URL = 'https://schemas.cdon.com/product/4.0/' . self::SCHEMA_VERSION . '/';
 
-  public function __construct(string $feed_name, $get_all = false, $remove = false)
+  public function __construct(string $feed_name, $get_all, $remove)
   {
     $query = new WC_Product_Query();
 
     $query->set('downloadable', false);
     $query->set('virtual', false);
-    // $query->set('type', 'simple');
-
-    if (!$get_all) {
-      $query->set('cdon_export_' . $feed_name, 'yes');
-    }
+    $query->set('type', 'simple');
+    $query->set('cdon_export', 'yes');
 
     $this->_products = $query->get_products();
-
     $this->_feed_name = $feed_name;
+
+
+    if (!$get_all) {
+      // Only get products that have been modified since last export
+      $this->_products = array_filter($this->_products, function ($product) {
+        $last_exported = get_post_meta($product->id, 'cdon_last_exported_' . $this->_feed_name);
+        $is_older = $last_exported == null || $last_exported[0] <= $product->get_date_modified()->date('U');
+        return $is_older;
+      });
+    }
 
     $this->_markets = array_filter(array_keys(MARKETS), function ($market) {
       return get_option('cdon_' . $market . '_enabled') == 'yes';
     });
 
-    $this->_remove = $remove;
+    $this->_remove = $remove ?: true;
 
     $this->_logger = new WC_Logger();
   }
@@ -42,7 +48,7 @@ class CDON_Feed
       $feed = $this->{'_' . $this->_feed_name}();
 
       if ($this->_remove) {
-        $this->_remove_from_next_export();
+        $this->_remove_from_next_export($this->_feed_name);
       }
 
       return $feed;
@@ -323,10 +329,10 @@ class CDON_Feed
     return $element;
   }
 
-  private function _remove_from_next_export(): void
+  private function _remove_from_next_export($feed): void
   {
     foreach ($this->_products as $product) {
-      update_post_meta($product->id, 'cdon_export_' . $this->_feed_name, 'no');
-    }
+      update_post_meta($product->id, 'cdon_last_exported_' . $feed, time());
+    } 
   }
 }

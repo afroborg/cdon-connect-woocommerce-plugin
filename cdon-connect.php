@@ -15,6 +15,7 @@ defined('ABSPATH') || die();
 if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_option('active_plugins')))) {
     if (!class_exists('CDON')) {
         require_once('cdon-constants.php');
+        require_once('assets/cdon-styles.php');
         require_once('classes/CDON.php');
         require_once('classes/CDON_Feed.php');
         require_once('classes/settings/WC_Settings_CDON.php');
