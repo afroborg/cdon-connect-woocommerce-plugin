@@ -41,7 +41,6 @@ class CDON
     // Save custom CDON fields
     add_action('woocommerce_process_product_meta', [$this->_product_settings, 'cdon_save_product_settings']);
 
-
   }
 
   public function cdon_rest_routes()
