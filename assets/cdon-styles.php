@@ -4,6 +4,15 @@ function cdon_custom_styles()
 {
 ?>
   <style>
+    #cdon_options .cdon__section-header {
+      margin-bottom: 0;
+    }
+    #cdon_options .cdon__last-exports {
+      padding-bottom: 14px;
+    }
+    #cdon_options .form-field {
+      margin-top: 0;
+    }
     #woocommerce-product-data ul.wc-tabs li.cdon_tab a:before {
       background: url(<?= 'data:image/svg+xml;base64,' . base64_encode(cdon_c_logo('#0073aa')) ?>);
       content: " " !important;
