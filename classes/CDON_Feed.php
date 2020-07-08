@@ -106,7 +106,7 @@ class CDON_Feed
 
         $product_element->appendChild($title_element);
 
-        // Generate descriptions
+        // Generate description(s)
         $description_element = $xml->createElement('description');
         $description = $product->get_description() != '' ?: ($product->get_short_description() != '' ?: 'N/A');
         $default_description_element = $xml->createElement('default');
@@ -128,7 +128,7 @@ class CDON_Feed
 
         // Get category from mapped categories
         $category_id = ($product->get_category_ids())[0];
-        $category = get_option('cdon_category_' . $category_id);
+        $category = get_post_meta($product->id, 'cdon_category') ?: get_option('cdon_category_' . $category_id);
 
         if (!$category) {
           $this->_logger->log('cdon_skipped', 'Product #' . $product->get_id() . ' was skipped because of unmapped category');
