@@ -23,7 +23,7 @@ class CDON_Product_Settings
           woocommerce_wp_checkbox(array(
             'id'     => 'cdon_export',
             'label'   => __('Export?', 'cdon'),
-            'description' => 'Determines wether or not to export this product to CDON'
+            'description' => 'Determines whether or not to export this product to CDON'
           ));
           ?>
         </div>
