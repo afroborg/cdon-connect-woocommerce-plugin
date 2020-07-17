@@ -36,6 +36,19 @@ function cdon_add_settings_page()
 
       $settings = $this->get_settings($current_section);
       WC_Admin_Settings::save_fields($settings);
+
+      if (isset($_POST['cdon_export_all']) && $_POST['cdon_export_all'] == 1) {
+        $query = new WC_Product_Query();
+
+        $query->set('limit', -1);
+        $query->set('downloadable', false);
+        $query->set('virtual', false);
+        $query->set('type', 'simple');
+
+        foreach($query->get_products() as $product) {
+          update_post_meta($product->get_id(), 'cdon_export', 'yes');
+        }
+      }
     }
 
     public function get_sections()
@@ -59,7 +72,7 @@ function cdon_add_settings_page()
           $fields[] = [
             'id' => 'wc_settings_cdon_markets',
             'name' => __($market, 'cdon'),
-            'desc' => '<a href="https://cdon.' . $key .'" target="_blank" rel="norefferer">https://cdon.' . $key . '/</a>',
+            'desc' => '<a href="https://cdon.' . $key . '" target="_blank" rel="norefferer">https://cdon.' . $key . '/</a>',
             'type' => 'title',
           ];
           $fields[] = [
@@ -105,6 +118,9 @@ function cdon_add_settings_page()
 
         $settings = apply_filters('cdon_market_settings', $fields);
       } else if ($current_section == 'categories') {
+
+        $categories_flipped = array_flip(CDON_CATEGORIES);
+
         $fields[] = [
           'id' => 'wc_settings_cdon_categories',
           'name' => __('Category mappings', 'cdon'),
@@ -116,7 +132,7 @@ function cdon_add_settings_page()
             'id' => 'cdon_category_' . $category->term_id,
             'name' => $category->name,
             'type' => 'select',
-            'options' => array_flip(CDON_CATEGORIES),
+            'options' => $categories_flipped,
             'default' => '',
             'desc_tip' => 'Choose a CDON Category'
           ];
@@ -137,7 +153,7 @@ function cdon_add_settings_page()
           'name' => __('Product Id', 'cdon'),
           'type' => 'select',
           'options' => $this->_post_attributes,
-          'default' => 'ID',
+          'default' => 'id',
           'desc' => 'This is the unique identifier that will be used on CDON'
         ];
         $fields[] = [
@@ -155,6 +171,12 @@ function cdon_add_settings_page()
           'desc' => 'EAN, JAN, ISBN or any other GTIN'
         ];
         $fields[] = [
+          'id' => 'cdon_export_all',
+          'name' => __('Export all', 'cdon'),
+          'type' => 'checkbox',
+          'desc' => 'Enable all your products for CDON export'
+        ];
+        $fields[] = [
           'type' => 'sectionend',
           'id' => 'wc_settings_cdon_general_end'
         ];
@@ -162,6 +184,7 @@ function cdon_add_settings_page()
       }
       return apply_filters('woocommerce_get_settings_' . $this->id, $settings, $current_section);
     }
+
     private function _to_options_array($arr)
     {
       $finished_array = [];

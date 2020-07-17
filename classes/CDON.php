@@ -54,12 +54,12 @@ class CDON
         $feed_type = $data['feed'];
         $feed_generator = new CDON_Feed($feed_type, $data->get_param('all'), $data->get_param('remove'));
         $feed_data = $feed_generator->create_feed();
-
-        echo ($feed_data);
+        // header('Content-Type: application/xml')
+        // echo ($feed_data);
         return new WP_REST_Response(
           null,
-          200,
-          ['Content-Type' => 'application/xml']
+          302,
+          ['Location' => get_site_url() . '/wp-content/cdon/feeds/' . $feed_type . '.xml']
         );
       }
     ]);
