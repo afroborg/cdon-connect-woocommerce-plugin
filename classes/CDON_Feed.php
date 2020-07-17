@@ -18,6 +18,7 @@ class CDON_Feed
     $query->set('downloadable', false);
     $query->set('virtual', false);
     $query->set('type', 'simple');
+    $query->set('limit', -1);
     $query->set('cdon_export', 'yes');
 
     $this->_products = $query->get_products();
@@ -114,10 +115,7 @@ class CDON_Feed
         $description_element->appendChild($default_description_element);
 
         foreach ($this->_markets as $market) {
-          $market_description =  $this->_get_attribute_from_option($product, 'cdon__description_market--' . $market, 'description');
-
-          if (!$market_description)
-            continue;
+          $market_description =  $this->_get_attribute_from_option($product, 'cdon__description_market--' . $market, 'description') ?: 'N/A';
 
           $market_element = $xml->createElement($market);
           $market_element->appendChild($xml->createCDATASection($market_description));
@@ -126,16 +124,25 @@ class CDON_Feed
 
         $product_element->appendChild($description_element);
 
+        $category_root_element = $xml->createElement('category');
+
         // Get category from mapped categories
         $category_id = ($product->get_category_ids())[0];
-        $category = get_post_meta($product->id, 'cdon_category') ?: get_option('cdon_category_' . $category_id);
+        $product_specific_category = get_post_meta($product->id, 'cdon_category');
+
+        if ($product_specific_category) {
+          $category_comment = $xml->createComment("This product has a category override");
+          $category_root_element->appendChild($category_comment);
+          $category = $product_specific_category[0];
+        } else {
+          $category = get_option('cdon_category_' . $category_id);
+        }
 
         if (!$category) {
           $this->_logger->log('cdon_skipped', 'Product #' . $product->get_id() . ' was skipped because of unmapped category');
           continue;
         }
 
-        $category_root_element = $xml->createElement('category');
         $category_element = $xml->createElement($category);
         $category_root_element->appendChild($category_element);
         $product_element->appendChild($category_root_element);
@@ -186,8 +193,10 @@ class CDON_Feed
       foreach ($this->_markets as $market) {
         $market_element = $xml->createElement($market);
         $original_price = ($this->_get_attribute_from_option($product, 'cdon_' . $market . '_sales_price') ?: $product->get_regular_price()) ?: $product->get_price();
-        if (!$original_price)
+        if (!$original_price) {
+          $this->_logger->log('cdon_skipped', 'Product #' . $product->get_id() . ' was skipped because of missing orignal price');
           continue;
+        }
         $sale_price = ($this->_get_attribute_from_option($product, 'cdon_' . $market . '_sales_price') ?: $product->get_sale_price()) ?: $original_price;
         $sale_price_element = $xml->createElement('salePrice', $sale_price);
         $original_price_element = $xml->createElement('originalPrice', $original_price);
@@ -258,8 +267,10 @@ class CDON_Feed
       $images_element = $xml->createElement('images');
       $main_image_id =  $product->get_image_id();
 
-      if (!$main_image_id)
+      if (!$main_image_id) {
+        $this->_logger->log('cdon_skipped', 'Product #' . $product->get_id() . ' was skipped because of missing main image');
         continue;
+      }
 
       $main_image_element = $xml->createElement('main', wp_get_attachment_image_url($main_image_id, 'full'));
       $images_element->appendChild($main_image_element);
@@ -283,6 +294,13 @@ class CDON_Feed
 
   private function _return(DomDocument $xml): string
   {
+    $path = WP_CONTENT_DIR . '/cdon/feeds/';
+    if (!file_exists($path)) {
+      mkdir($path, 0777, true);
+    }
+    $file_name = $path . $this->_feed_name . '.xml';
+    
+    $xml->save($file_name);
     return $xml->saveXML();
   }
 
@@ -303,7 +321,7 @@ class CDON_Feed
     $xml = new DOMDocument('1.0', 'UTF-8');
     $xml->formatOutput = true;
 
-    $comment = $xml->createComment($this->_comment($endpoint));
+    $comment = $xml->createComment($this->_comment($endpoint, count($this->_products)));
     $xml->appendChild($comment);
 
     $marketplace = $xml->createElement('marketplace');
@@ -313,9 +331,9 @@ class CDON_Feed
     return [$xml, $marketplace];
   }
 
-  private function _comment(string $endpoint): string
+  private function _comment(string $endpoint, int $product_count): string
   {
-    return 'CDON ' . $endpoint . ' feed created automatically at ' . date('Y-m-d H:i:s') . ' by CDON Connect Woocommerce plugin';
+    return 'CDON ' . $endpoint . ' feed created automatically at ' . date('Y-m-d H:i:s') . ' UTC by CDON Connect Woocommerce plugin, it contains ' . $product_count . ' products';
   }
 
   private function _dimensionElement(DomDocument $xml, string $dimension_name, string $value, string $unit): DOMElement
@@ -333,6 +351,6 @@ class CDON_Feed
   {
     foreach ($this->_products as $product) {
       update_post_meta($product->id, 'cdon_last_exported_' . $feed, time());
-    } 
+    }
   }
 }
