@@ -44,7 +44,7 @@ class CDON_Product_Settings
             $feed = strtolower($f);
             $exported_date = (get_post_meta(get_the_ID(), 'cdon_last_exported_' . $feed) ?: [false])[0];
           ?>
-            <p style="margin: 0;"><?= ucfirst($feed) ?>: <b> <?= isset($exported_date) ? date(DATE_ISO8601, $exported_date) : 'Never' ?></b></p>
+            <p style="margin: 0;"><?= ucfirst($feed) ?>: <b> <?= $exported_date ? date(DATE_ISO8601, $exported_date) : 'N/A' ?></b></p>
           <?php
           }
           ?>
@@ -57,9 +57,11 @@ class CDON_Product_Settings
   {
     $export_cdon = isset($_POST['cdon_export']) ? 'yes' : 'no';
     update_post_meta($post_id, 'cdon_export', $export_cdon);
-    
+
+    isset($_POST['cdon_category']) && $_POST['cdon_category'] != '' ? update_post_meta($post_id, 'cdon_category', $_POST['cdon_category']) :
+      delete_post_meta($post_id, 'cdon_category');
   }
-  
+
   public function cdon_custom_query_var($query, $query_vars)
   {
     if (!empty($query_vars['cdon_export'])) {
